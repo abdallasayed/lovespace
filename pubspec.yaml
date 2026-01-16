@@ -9,7 +9,16 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  google_fonts: ^6.1.0
+  # أيقونات
   cupertino_icons: ^1.0.2
+  # فايربيز (قاعدة البيانات)
+  firebase_core: ^2.24.2
+  cloud_firestore: ^4.14.0
+  # رفع الوسائط (Uploadcare)
+  uploadcare_flutter: ^4.0.0
+  # تنسيق التاريخ للرسائل
+  intl: ^0.19.0
 
 dev_dependencies:
   flutter_test:
