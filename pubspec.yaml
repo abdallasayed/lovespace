@@ -20,7 +20,6 @@ dependencies:
   provider: ^6.1.1
   intl: ^0.19.0
   timeago: ^3.3.0
-  firebase_core: ^2.24.2
   
   # حذف الحزم التي تسبب مشاكل مؤقتاً:
   # firebase_storage: ^11.3.6  # مؤقتاً
