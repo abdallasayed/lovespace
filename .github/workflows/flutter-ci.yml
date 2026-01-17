@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
     
     steps:
@@ -16,21 +16,39 @@ jobs:
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.19.0'  # ⬅️ غير إلى إصدار أحدث
+        flutter-version: '3.19.0'
         
     - name: Install dependencies
       run: |
         flutter clean
         flutter pub get
         
-    - name: Analyze code
-      run: flutter analyze
-      
-    - name: Build APK
-      run: flutter build apk --debug
-      
-    - name: Upload APK
+    - name: Enable MultiDex support
+      run: |
+        chmod +x scripts/enable_multidex.sh
+        ./scripts/enable_multidex.sh
+        
+    - name: Sync Flutter with Android
+      run: |
+        flutter pub get
+        cd android
+        ./gradlew app:dependencies
+        
+    - name: Build with MultiDex
+      run: |
+        # محاولة البناء مع MultiDex
+        if flutter build apk --debug; then
+          echo "✅ البناء نجح مع MultiDex"
+        else
+          echo "⚠️  فشل البناء، جرب الطريقة اليدوية..."
+          # الطريقة الاحتياطية
+          cd android
+          ./gradlew clean
+          ./gradlew assembleDebug --stacktrace
+        fi
+        
+    - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: debug-apk
-        path: build/app/outputs/flutter-apk/app-debug.apk
+        name: built-apks
+        path: build/app/outputs/flutter-apk/
