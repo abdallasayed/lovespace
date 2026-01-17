@@ -1,3 +1,5 @@
+import 'package:firebase_core/firebase_core.dart'; // ⬅️ هذا السطر الناقص
+
 class FirebaseConfig {
   // ⚠️ هذا للتطوير فقط - لا تستخدمه للإنتاج
   static const Map<String, dynamic> devConfig = {
