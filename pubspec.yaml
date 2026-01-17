@@ -1,39 +1,37 @@
+name: lovespace
+description: تطبيق عشاق للمحبين
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
 dependencies:
   flutter:
     sdk: flutter
-  
-  # Firebase packages
+
+  # Firebase Core فقط للبداية
   firebase_core: ^2.24.2
   firebase_auth: ^4.16.0
   cloud_firestore: ^4.14.0
-  firebase_storage: ^11.3.6
-  
-  # UI & Utilities
+
+  # حزم أساسية فقط
   google_fonts: ^6.1.0
-  intl: ^0.18.1
-  timeago: ^3.3.0
-  uuid: ^4.0.1
-  
-  # Media & Files
-  image_picker: ^1.0.4
-  file_picker: ^6.1.1
-  
-  # Audio - تم التحديث للإصدار الأحدث
-  audioplayers: ^6.4.0  # ⬅️ غير هذا السطر
-  
-  # Environment variables
-  flutter_dotenv: ^5.1.0
-  
-  # State Management
   provider: ^6.1.1
+  intl: ^0.19.0
+  
+  # حذف الحزم التي تسبب مشاكل مؤقتاً:
+  # firebase_storage: ^11.3.6  # مؤقتاً
+  # timeago: ^3.3.0           # مؤقتاً
+  # uuid: ^4.0.1              # مؤقتاً
+  # image_picker: ^1.0.4      # مؤقتاً
+  # file_picker: ^6.1.1       # مؤقتاً
+  # audioplayers: ^6.4.0      # مؤقتاً
+  # flutter_dotenv: ^5.1.0    # مؤقتاً
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.1
 
 flutter:
   uses-material-design: true
-  assets:
-    - assets/images/
-    - .env
