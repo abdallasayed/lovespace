@@ -1,11 +1,3 @@
-name: lovespace
-description: تطبيق عشاق للمحبين
-publish_to: 'none'
-version: 1.0.0+1
-
-environment:
-  sdk: '>=3.0.0 <4.0.0'
-
 dependencies:
   flutter:
     sdk: flutter
@@ -26,8 +18,8 @@ dependencies:
   image_picker: ^1.0.4
   file_picker: ^6.1.1
   
-  # Audio
-  audioplayers: ^5.3.0
+  # Audio - تم التحديث للإصدار الأحدث
+  audioplayers: ^6.4.0  # ⬅️ غير هذا السطر
   
   # Environment variables
   flutter_dotenv: ^5.1.0
