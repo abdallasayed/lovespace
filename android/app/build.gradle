@@ -63,5 +63,6 @@ flutter {
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    // التعديل هنا: وضعنا الرقم 1.8.22 مباشرة بدلاً من المتغير المفقود
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22"
 }
