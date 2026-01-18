@@ -54,9 +54,10 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.debug
-            minifyEnabled true
-            shrinkResources true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // --- التعديل الحاسم هنا ---
+            minifyEnabled false    // إلغاء التصغير لتجاوز خطأ R8
+            shrinkResources false  // إلغاء تقليص الموارد
+            // -------------------------
         }
     }
 }
@@ -66,6 +67,5 @@ flutter {
 }
 
 dependencies {
-    // توحيد الإصدار هنا أيضاً
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.0"
 }
