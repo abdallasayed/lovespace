@@ -1,186 +1,44 @@
-name: Flutter Build with MultiDex
+name: Build APK
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-env:
-  FLUTTER_VERSION: '3.19.0'
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Setup Flutter
-      uses: subosito/flutter-action@v2
+    # 1. سحب الكود
+    - uses: actions/checkout@v4
+
+    # 2. إعداد جافا (الإصدار 17 هو الأفضل حالياً)
+    - uses: actions/setup-java@v4
       with:
-        flutter-version: ${{ env.FLUTTER_VERSION }}
-        cache: true
-        cache-key: flutter-cache
-    
-    - name: Check project structure
-      run: |
-        echo "📁 فحص هيكل المشروع..."
-        ls -la
-        echo "---"
-        echo "المجلدات الموجودة:"
-        find . -maxdepth 1 -type d | sort
-    
-    - name: Recreate Flutter project properly
-      run: |
-        echo "🔄 إعادة إنشاء مشروع Flutter بشكل صحيح..."
-        
-        # 1. حفظ ملفاتنا المهمة
-        if [ -f "pubspec.yaml" ]; then
-          echo "💾 حفظ pubspec.yaml..."
-          cp pubspec.yaml /tmp/pubspec_backup.yaml
-        fi
-        
-        if [ -d "lib" ]; then
-          echo "💾 حفظ مجلد lib..."
-          mkdir -p /tmp/lib_backup
-          cp -r lib/* /tmp/lib_backup/ 2>/dev/null || true
-        fi
-        
-        # 2. حذف المجلدات النظامية القديمة
-        echo "🧹 تنظيف المجلدات النظامية..."
-        rm -rf android ios windows linux macos .dart_tool .packages pubspec.lock
-        
-        # 3. إنشاء مشروع Flutter جديد
-        echo "🏗️ إنشاء مشروع Flutter جديد..."
-        flutter create --org com.example --project-name lovespace --platforms android .
-        
-        # 4. استعادة ملفاتنا
-        echo "↩️ استعادة ملفاتنا..."
-        if [ -f "/tmp/pubspec_backup.yaml" ]; then
-          # دمج dependencies بدلاً من الاستبدال
-          echo "📦 دمج dependencies من pubspec.yaml القديم..."
-          # سنحتفظ بالـ pubspec.yaml الجديد ونضيف dependencies يدوياً
-          cp pubspec.yaml /tmp/pubspec_new.yaml
-          
-          # استخراج dependencies من النسخة الاحتياطية وإضافتها للجديدة
-          echo "dependencies:" > pubspec.yaml
-          grep -A 50 "dependencies:" /tmp/pubspec_backup.yaml | tail -n +2 >> pubspec.yaml
-          echo "" >> pubspec.yaml
-          echo "dev_dependencies:" >> pubspec.yaml
-          grep -A 20 "dev_dependencies:" /tmp/pubspec_backup.yaml | tail -n +2 >> pubspec.yaml
-        fi
-        
-        if [ -d "/tmp/lib_backup" ]; then
-          echo "📁 استعادة ملفات lib..."
-          cp -r /tmp/lib_backup/* lib/ 2>/dev/null || true
-        fi
-        
-        # 5. تثبيت dependencies
-        echo "📥 تثبيت dependencies..."
-        flutter pub get
-        
-        echo "✅ تم إعادة إنشاء المشروع بنجاح"
-    
-    - name: Configure MultiDex
-      run: |
-        echo "⚙️ تكوين MultiDex..."
-        
-        # التحقق من وجود الملف أولاً
-        if [ ! -f "android/app/build.gradle" ]; then
-          echo "❌ ملف build.gradle غير موجود، جاري إنشاؤه..."
-          
-          # إنشاء هيكل مجلدات Android إذا لم يكن موجوداً
-          mkdir -p android/app/src/main/res/values
-          
-          # إنشاء ملف build.gradle أساسي
-          cat > android/app/build.gradle << 'EOF'
-apply plugin: 'com.android.application'
-apply plugin: 'kotlin-android'
-apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
+        distribution: 'zulu'
+        java-version: '17'
 
-android {
-    namespace "com.example.lovespace"
-    compileSdkVersion flutter.compileSdkVersion
-    
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-
-    kotlinOptions {
-        jvmTarget = '1.8'
-    }
-
-    sourceSets {
-        main.java.srcDirs += 'src/main/kotlin'
-    }
-
-    defaultConfig {
-        applicationId "com.example.lovespace"
-        minSdkVersion flutter.minSdkVersion
-        targetSdkVersion flutter.targetSdkVersion
-        versionCode 1
-        versionName "1.0.0"
-        multiDexEnabled true  # ⬅️ تمكين MultiDex هنا
-    }
-
-    buildTypes {
-        release {
-            signingConfig signingConfigs.debug
-        }
-    }
-}
-
-flutter {
-    source '../..'
-}
-
-dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    implementation 'androidx.multidex:multidex:2.0.1'  # ⬅️ إضافة dependency هنا
-}
-EOF
-          
-          echo "✅ تم إنشاء build.gradle جديد مع MultiDex"
-        else
-          # إذا الملف موجود، نعدله
-          GRADLE_FILE="android/app/build.gradle"
-          
-          if grep -q "defaultConfig" "$GRADLE_FILE"; then
-            if ! grep -q "multiDexEnabled true" "$GRADLE_FILE"; then
-              sed -i '/defaultConfig {/a\        multiDexEnabled true' "$GRADLE_FILE"
-            fi
-          else
-            # إضافة defaultConfig إذا لم يكن موجوداً
-            sed -i '/android {/a\    defaultConfig {\n        multiDexEnabled true\n    }' "$GRADLE_FILE"
-          fi
-          
-          if ! grep -q "androidx.multidex:multidex" "$GRADLE_FILE"; then
-            sed -i "/dependencies {/a\    implementation 'androidx.multidex:multidex:2.0.1'" "$GRADLE_FILE"
-          fi
-        fi
-        
-        echo "✅ تم تكوين MultiDex"
-    
-    - name: Build Debug APK
-      run: |
-        echo "🔨 بناء APK للتطوير..."
-        flutter build apk --debug --no-shrink
-        
-        # التحقق من وجود الملف المبنى
-        if [ -f "build/app/outputs/flutter-apk/app-debug.apk" ]; then
-          echo "✅ تم بناء APK بنجاح!"
-          ls -lh build/app/outputs/flutter-apk/
-        else
-          echo "❌ فشل بناء APK"
-          exit 1
-        fi
-    
-    - name: Upload APK artifact
-      uses: actions/upload-artifact@v4
+    # 3. إعداد فلاتر
+    - uses: subosito/flutter-action@v2
       with:
-        name: debug-apk
-        path: build/app/outputs/flutter-apk/app-debug.apk
-        retention-days: 7
+        flutter-version: '3.19.0'
+
+    # 4. خطوة سحرية: إصلاح ملفات الأندرويد إذا كانت ناقصة
+    - run: flutter create --platforms android .
+
+    # 5. تحميل المكتبات
+    - run: flutter pub get
+
+    # 6. خطوة هامة جداً: إعطاء صلاحية التنفيذ لملف جرادل (يحل مشكلة الفشل الصامت)
+    - name: Fix Gradle Permissions
+      run: chmod +x android/gradlew
+
+    # 7. بناء ملف APK
+    - run: flutter build apk --release
+
+    # 8. رفع الملف لكي تقوم بتحميله
+    - uses: actions/upload-artifact@v4
+      with:
+        name: app-release
+        path: build/app/outputs/flutter-apk/app-release.apk
+
