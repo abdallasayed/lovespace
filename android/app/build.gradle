@@ -54,7 +54,7 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.debug
-            // إيقاف التصغير هام جداً الآن
+            // إيقاف التصغير لتفادي مشاكل R8
             minifyEnabled false
             shrinkResources false
         }
@@ -66,7 +66,7 @@ flutter {
 }
 
 dependencies {
-    // التوافق مع Kotlin 1.9.0
+    // توحيد المكتبة مع المترجم (1.9.0)
     implementation "org.jetbrains.kotlin:kotlin-stdlib:1.9.0"
 }
 

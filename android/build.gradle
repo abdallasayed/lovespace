@@ -1,12 +1,12 @@
 buildscript {
-    // هذا السطر هو الأهم لحل مشكلتك
+    // تعريف المتغير هنا هو الحل السحري
     ext.kotlin_version = '1.9.0'
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
-        // أدوات بناء أندرويد متوافقة
+        // تحديث أدوات أندرويد لتتوافق مع Gradle 7.6.3
         classpath 'com.android.tools.build:gradle:7.4.2'
         // استخدام إصدار كوتلين المعرف بالأعلى
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
