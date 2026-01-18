@@ -30,12 +30,12 @@ dependencies:
   http: ^1.1.0
   cached_network_image: ^3.3.1
   
-  # الصلاحيات والتحميل
+  # الصلاحيات والتحميل (تم التعديل هنا)
   permission_handler: ^11.3.0
   dio: ^5.4.0
   path_provider: ^2.1.2
-  gal: ^2.2.0  # لحفظ الصور والفيديو في المعرض
-  flutter_slidable: ^3.0.1 # للحذف بالسحب
+  image_gallery_saver: ^2.0.3  # البديل المستقر
+  flutter_slidable: ^3.0.1
 
 dev_dependencies:
   flutter_test:

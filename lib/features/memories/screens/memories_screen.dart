@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:typed_data'; // ضروري للحفظ
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -8,7 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:dio/dio.dart';
-import 'package:gal/gal.dart';
+import 'package:image_gallery_saver/image_gallery_saver.dart'; // المكتبة الجديدة
 
 class MemoriesScreen extends StatefulWidget {
   final String coupleId;
@@ -21,7 +22,6 @@ class MemoriesScreen extends StatefulWidget {
 class _MemoriesScreenState extends State<MemoriesScreen> {
   bool _isUploading = false;
 
-  // دالة الرفع (Uploadcare)
   Future<String?> _uploadToUploadcare(File file) async {
     try {
       var request = http.MultipartRequest('POST', Uri.parse('https://upload.uploadcare.com/base/'));
@@ -49,7 +49,6 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
       try {
         final String? fileId = await _uploadToUploadcare(File(image.path));
         if (fileId != null) {
-          // رابط مباشر للصورة
           final String url = "https://ucarecdn.com/$fileId/"; 
           await FirebaseFirestore.instance.collection('couples').doc(widget.coupleId).collection('images').add({
             'url': url,
@@ -66,20 +65,34 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
     }
   }
 
-  // دالة حفظ الصورة
+  // دالة الحفظ الجديدة (باستخدام ImageGallerySaver)
   Future<void> _saveImage(String url) async {
     try {
-      if (!await Gal.hasAccess()) await Gal.requestAccess();
-      final path = '${Directory.systemTemp.path}/temp_image.jpg';
-      await Dio().download(url, path);
-      await Gal.putImage(path);
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم الحفظ في المعرض ✅")));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("جاري الحفظ...")));
+      
+      // 1. تنزيل الصورة كبيانات (Bytes)
+      var response = await Dio().get(
+        url,
+        options: Options(responseType: ResponseType.bytes),
+      );
+      
+      // 2. حفظها في المعرض
+      final result = await ImageGallerySaver.saveImage(
+        Uint8List.fromList(response.data),
+        quality: 100,
+        name: "lovespace_${DateTime.now().millisecondsSinceEpoch}"
+      );
+
+      if (result['isSuccess'] == true) {
+         if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم الحفظ في الأستوديو بنجاح ✅")));
+      } else {
+         throw "خطأ غير معروف";
+      }
     } catch (e) {
       if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("فشل الحفظ: $e")));
     }
   }
 
-  // دالة الحذف
   Future<void> _deleteImage(String docId) async {
     await FirebaseFirestore.instance.collection('couples').doc(widget.coupleId).collection('images').doc(docId).delete();
   }
@@ -128,7 +141,6 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
 
               return GestureDetector(
                 onLongPress: () {
-                  // قائمة خيارات عند الضغط المطول
                   showModalBottomSheet(context: context, builder: (ctx) => Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -161,7 +173,6 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                           placeholder: (context, url) => Container(color: Colors.grey[200]),
                           errorWidget: (context, url, error) => const Icon(Icons.error),
                         ),
-                        // تدرج لوني خفيف في الأسفل
                         Positioned(
                           bottom: 0, left: 0, right: 0,
                           child: Container(
