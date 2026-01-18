@@ -45,7 +45,7 @@ android {
 
     defaultConfig {
         applicationId "com.example.lovespace"
-        minSdkVersion 23
+        minSdkVersion 23  // مطلوب لمكتبة التسجيل
         targetSdkVersion 34
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
@@ -54,7 +54,7 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.debug
-            // هام جداً: إلغاء التصغير لتجنب أخطاء R8 مع المكتبات الحديثة
+            // إلغاء التصغير لتجاوز أخطاء R8 مع Kotlin 1.9.0
             minifyEnabled false
             shrinkResources false
         }
@@ -66,6 +66,6 @@ flutter {
 }
 
 dependencies {
-    // تثبيت المكتبة على 1.9.0 لتتوافق مع المترجم
+    // فرض استخدام الإصدار 1.9.0 من المكتبة المعيارية
     implementation "org.jetbrains.kotlin:kotlin-stdlib:1.9.0"
 }
