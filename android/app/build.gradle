@@ -27,7 +27,8 @@ apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
     namespace "com.example.lovespace"
-    compileSdkVersion 33
+    // التحديث المطلوب: 34
+    compileSdkVersion 34
     ndkVersion flutter.ndkVersion
 
     compileOptions {
@@ -45,15 +46,22 @@ android {
 
     defaultConfig {
         applicationId "com.example.lovespace"
+        // الحد الأدنى 23 كما طلبنا سابقاً
         minSdkVersion 23
-        targetSdkVersion flutter.targetSdkVersion
+        // التحديث المطلوب: 34
+        targetSdkVersion 34
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
     }
 
     buildTypes {
         release {
+            // إعدادات التوقيع الافتراضية للتجربة
             signingConfig signingConfigs.debug
+            // تفعيل التصغير (Shrinking) قد يسبب مشاكل أحياناً، سنبقيه مفعلاً مع كوتلين الجديد
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
 }
@@ -63,6 +71,6 @@ flutter {
 }
 
 dependencies {
-    // التعديل هنا: وضعنا الرقم 1.8.22 مباشرة بدلاً من المتغير المفقود
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22"
+    // استخدام المتغير المعرف في الملف الرئيسي
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 }
