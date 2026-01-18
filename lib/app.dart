@@ -1,31 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-
-import 'features/auth/screens/login_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'features/auth/screens/link_gate.dart';
 
-class AuthGate extends StatelessWidget {
-  const AuthGate({super.key});
+class LoveSpaceApp extends StatelessWidget {
+  const LoveSpaceApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
-          );
-        }
-        
-        if (snapshot.hasData) {
-          return const LinkGate();
-        }
-        
-        return const LoginScreen();
+    return MaterialApp(
+      title: 'عشاق',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.pink,
+        scaffoldBackgroundColor: const Color(0xFFF8F9FA),
+        textTheme: GoogleFonts.cairoTextTheme(Theme.of(context).textTheme),
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFE11D48)),
+      ),
+      locale: const Locale('ar', 'AE'),
+      builder: (context, child) {
+        return Directionality(textDirection: TextDirection.rtl, child: child!);
       },
+      // البوابة الرئيسية التي ستفحص حالة المستخدم
+      home: const LinkGate(),
     );
   }
 }
+
