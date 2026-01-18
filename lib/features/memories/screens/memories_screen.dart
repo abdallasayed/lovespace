@@ -1,10 +1,10 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:uploadcare_flutter/uploadcare_flutter.dart';
-import 'package:uploadcare_client/uploadcare_client.dart'; // إضافة هامة
+import 'package:http/http.dart' as http; // المكتبة الأساسية
 
 class MemoriesScreen extends StatefulWidget {
   final String coupleId;
@@ -15,13 +15,26 @@ class MemoriesScreen extends StatefulWidget {
 }
 
 class _MemoriesScreenState extends State<MemoriesScreen> {
-  // التصحيح: وضع المفتاح داخل UploadcareOptions
-  final _uploadcareClient = UploadcareClient(
-    options: UploadcareOptions(
-      publicKey: '8e2cb6a00c4b7dd45f95',
-      useInAppBrowser: true,
-    ),
-  );
+  // دالة الرفع المباشرة والسريعة
+  Future<String?> _uploadToUploadcare(File file) async {
+    try {
+      var request = http.MultipartRequest('POST', Uri.parse('https://upload.uploadcare.com/base/'));
+      request.fields['UPLOADCARE_PUB_KEY'] = '8e2cb6a00c4b7dd45f95';
+      request.fields['UPLOADCARE_STORE'] = '1'; // تخزين دائم
+      
+      request.files.add(await http.MultipartFile.fromPath('file', file.path));
+
+      var response = await request.send();
+      if (response.statusCode == 200) {
+        var responseData = await response.stream.bytesToString();
+        var json = jsonDecode(responseData);
+        return json['file']; // يرجع كود الملف (UUID)
+      }
+    } catch (e) {
+      debugPrint("Error uploading: $e");
+    }
+    return null;
+  }
 
   Future<void> _uploadImage() async {
     final ImagePicker picker = ImagePicker();
@@ -29,35 +42,42 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
 
     if (image != null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("جاري الرفع...")));
+      
       try {
         final file = File(image.path);
         
-        // الرفع المباشر
-        final String fileId = await _uploadcareClient.upload.auto(file);
-        final String url = "https://ucarecdn.com/$fileId/";
+        // 1. استخدام دالة الرفع الجديدة
+        final String? fileId = await _uploadToUploadcare(file);
 
-        await FirebaseFirestore.instance
-            .collection('couples')
-            .doc(widget.coupleId)
-            .collection('images')
-            .add({
-          'url': url,
-          'senderId': FirebaseAuth.instance.currentUser!.uid,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
+        if (fileId != null) {
+          final String url = "https://ucarecdn.com/$fileId/";
 
-        FirebaseFirestore.instance
-            .collection('couples')
-            .doc(widget.coupleId)
-            .collection('notifications')
-            .add({
-          'text': "صورة جديدة 📸",
-          'senderId': FirebaseAuth.instance.currentUser!.uid,
-          'timestamp': FieldValue.serverTimestamp(),
-        });
+          // 2. الحفظ في فايربيز
+          await FirebaseFirestore.instance
+              .collection('couples')
+              .doc(widget.coupleId)
+              .collection('images')
+              .add({
+            'url': url,
+            'senderId': FirebaseAuth.instance.currentUser!.uid,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+
+          FirebaseFirestore.instance
+              .collection('couples')
+              .doc(widget.coupleId)
+              .collection('notifications')
+              .add({
+            'text': "صورة جديدة 📸",
+            'senderId': FirebaseAuth.instance.currentUser!.uid,
+            'timestamp': FieldValue.serverTimestamp(),
+          });
+        } else {
+          throw "فشل الاتصال بالخادم";
+        }
 
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("فشل الرفع: $e")));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("فشل: $e")));
       }
     }
   }

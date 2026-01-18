@@ -1,11 +1,11 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:uploadcare_flutter/uploadcare_flutter.dart';
-import 'package:uploadcare_client/uploadcare_client.dart'; // إضافة هامة
+import 'package:http/http.dart' as http;
 
 class MusicScreen extends StatefulWidget {
   final String coupleId;
@@ -17,41 +17,57 @@ class MusicScreen extends StatefulWidget {
 
 class _MusicScreenState extends State<MusicScreen> {
   final AudioPlayer _player = AudioPlayer();
-  
-  // التصحيح: وضع المفتاح داخل UploadcareOptions
-  final _uploadcareClient = UploadcareClient(
-    options: UploadcareOptions(
-      publicKey: '8e2cb6a00c4b7dd45f95',
-      useInAppBrowser: true,
-    ),
-  );
-  
   String? _playingUrl;
   bool _isPlaying = false;
+
+  // دالة الرفع المباشرة
+  Future<String?> _uploadToUploadcare(File file) async {
+    try {
+      var request = http.MultipartRequest('POST', Uri.parse('https://upload.uploadcare.com/base/'));
+      request.fields['UPLOADCARE_PUB_KEY'] = '8e2cb6a00c4b7dd45f95';
+      request.fields['UPLOADCARE_STORE'] = '1';
+      request.files.add(await http.MultipartFile.fromPath('file', file.path));
+
+      var response = await request.send();
+      if (response.statusCode == 200) {
+        var responseData = await response.stream.bytesToString();
+        var json = jsonDecode(responseData);
+        return json['file'];
+      }
+    } catch (e) {
+      debugPrint("Error uploading: $e");
+    }
+    return null;
+  }
 
   Future<void> _uploadMusic() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.audio);
     if (result != null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("جاري الرفع...")));
+      
       try {
         final file = File(result.files.single.path!);
         
-        // الرفع المباشر
-        final String fileId = await _uploadcareClient.upload.auto(file);
-        final String url = "https://ucarecdn.com/$fileId/";
+        final String? fileId = await _uploadToUploadcare(file);
+        
+        if (fileId != null) {
+          final String url = "https://ucarecdn.com/$fileId/";
 
-        await FirebaseFirestore.instance
-            .collection('couples')
-            .doc(widget.coupleId)
-            .collection('music')
-            .add({
-          'url': url,
-          'name': result.files.single.name,
-          'senderId': FirebaseAuth.instance.currentUser!.uid,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
+          await FirebaseFirestore.instance
+              .collection('couples')
+              .doc(widget.coupleId)
+              .collection('music')
+              .add({
+            'url': url,
+            'name': result.files.single.name,
+            'senderId': FirebaseAuth.instance.currentUser!.uid,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+        } else {
+           throw "فشل الرفع";
+        }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("فشل الرفع: $e")));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("فشل: $e")));
       }
     }
   }
