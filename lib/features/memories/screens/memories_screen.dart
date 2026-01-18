@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:uploadcare_flutter/uploadcare_flutter.dart'; // استدعاء المكتبة
+import 'package:uploadcare_flutter/uploadcare_flutter.dart';
 
 class MemoriesScreen extends StatefulWidget {
   final String coupleId;
@@ -14,12 +14,9 @@ class MemoriesScreen extends StatefulWidget {
 }
 
 class _MemoriesScreenState extends State<MemoriesScreen> {
-  // إعداد العميل باستخدام مفتاحك
+  // التعديل الأول: تعريف العميل مباشرة بدون UploadcareOptions
   final _uploadcareClient = UploadcareClient(
-    options: UploadcareOptions(
-      publicKey: '8e2cb6a00c4b7dd45f95', // مفتاحك
-      useInAppBrowser: true,
-    ),
+    publicKey: '8e2cb6a00c4b7dd45f95',
   );
 
   Future<void> _uploadImage() async {
@@ -27,17 +24,17 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
     if (image != null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("جاري الرفع على Uploadcare...")));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("جاري الرفع...")));
       
       try {
-        // 1. الرفع إلى Uploadcare
-        final file = SharedFile(File(image.path));
-        final result = await _uploadcareClient.upload.auto(file);
+        final file = File(image.path);
         
-        // 2. الحصول على الرابط
-        final String url = "https://ucarecdn.com/${result.uuid}/";
+        // التعديل الثاني: الرفع المباشر واستقبال المعرف كنص (String)
+        final String fileId = await _uploadcareClient.upload.auto(file);
+        
+        // التعديل الثالث: استخدام المعرف مباشرة
+        final String url = "https://ucarecdn.com/$fileId/";
 
-        // 3. حفظ الرابط في فايربيز
         await FirebaseFirestore.instance
             .collection('couples')
             .doc(widget.coupleId)

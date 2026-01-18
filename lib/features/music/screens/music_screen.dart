@@ -16,12 +16,10 @@ class MusicScreen extends StatefulWidget {
 
 class _MusicScreenState extends State<MusicScreen> {
   final AudioPlayer _player = AudioPlayer();
-  // إعداد العميل
+  
+  // تصحيح تعريف العميل
   final _uploadcareClient = UploadcareClient(
-    options: UploadcareOptions(
-      publicKey: '8e2cb6a00c4b7dd45f95',
-      useInAppBrowser: true,
-    ),
+    publicKey: '8e2cb6a00c4b7dd45f95',
   );
   
   String? _playingUrl;
@@ -30,12 +28,13 @@ class _MusicScreenState extends State<MusicScreen> {
   Future<void> _uploadMusic() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.audio);
     if (result != null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("جاري الرفع على Uploadcare...")));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("جاري الرفع...")));
       
       try {
-        final file = SharedFile(File(result.files.single.path!));
-        final uploadResult = await _uploadcareClient.upload.auto(file);
-        final String url = "https://ucarecdn.com/${uploadResult.uuid}/";
+        // تصحيح عملية الرفع
+        final file = File(result.files.single.path!);
+        final String fileId = await _uploadcareClient.upload.auto(file);
+        final String url = "https://ucarecdn.com/$fileId/";
 
         await FirebaseFirestore.instance
             .collection('couples')
