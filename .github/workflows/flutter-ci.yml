@@ -1,54 +1,259 @@
-name: Flutter CI/CD
+name: Flutter Build Fix
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    branches: [main]
+  workflow_dispatch:  # يسمح بتشغيل يدوي
 
 jobs:
   build:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    # 1. تحميل الكود
+    - name: Checkout code
+      uses: actions/checkout@v4
     
+    # 2. إعداد Flutter
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
         flutter-version: '3.19.0'
-        
-    - name: Install dependencies
+    
+    # 3. عرض هيكل المشروع الحالي
+    - name: Inspect current structure
       run: |
-        flutter clean
-        flutter pub get
-        
-    - name: Enable MultiDex support
-      run: |
-        chmod +x scripts/enable_multidex.sh
-        ./scripts/enable_multidex.sh
-        
-    - name: Sync Flutter with Android
-      run: |
-        flutter pub get
-        cd android
-        ./gradlew app:dependencies
-        
-    - name: Build with MultiDex
-      run: |
-        # محاولة البناء مع MultiDex
-        if flutter build apk --debug; then
-          echo "✅ البناء نجح مع MultiDex"
+        echo "📁 الهيكل الحالي للمشروع:"
+        ls -la
+        echo ""
+        echo "🔍 البحث عن ملفات مهمة:"
+        find . -name "*.dart" -o -name "pubspec.yaml" -o -name "*.gradle" | head -20
+        echo ""
+        echo "هل مجلد android موجود؟"
+        if [ -d "android" ]; then
+          echo "✅ نعم، android/ موجود"
+          ls -la android/
         else
-          echo "⚠️  فشل البناء، جرب الطريقة اليدوية..."
-          # الطريقة الاحتياطية
-          cd android
-          ./gradlew clean
-          ./gradlew assembleDebug --stacktrace
+          echo "❌ لا، android/ غير موجود"
+        fi
+    
+    # 4. إنشاء مشروع Flutter صحيح (فقط إذا android غير موجود)
+    - name: Create Android project
+      if: false == contains(fromJson('["android", "ios", "windows", "linux", "macos"]'), 'true')
+      run: |
+        echo "🏗️ إنشاء هيكل Android (لأنه غير موجود)..."
+        
+        # حفظ الملفات المهمة
+        echo "💾 حفظ الملفات الحالية..."
+        mkdir -p /tmp/flutter_backup
+        [ -f "pubspec.yaml" ] && cp pubspec.yaml /tmp/flutter_backup/
+        [ -d "lib" ] && cp -r lib /tmp/flutter_backup/
+        [ -f "README.md" ] && cp README.md /tmp/flutter_backup/
+        
+        # عرض محتوى pubspec.yaml الحالي
+        echo "📋 محتوى pubspec.yaml الحالي:"
+        cat pubspec.yaml || echo "لا يوجد pubspec.yaml"
+        
+        # إنشاء مشروع Flutter جديد
+        echo "🚀 إنشاء مشروع Flutter جديد..."
+        flutter create --org com.example --project-name lovespace --platforms android --overwrite .
+        
+        # استعادة ملفاتنا
+        echo "↩️ استعادة ملفاتنا..."
+        if [ -f "/tmp/flutter_backup/pubspec.yaml" ]; then
+          echo "استبدال pubspec.yaml الجديد بالقديم (مع dependencies)"
+          cp /tmp/flutter_backup/pubspec.yaml .
         fi
         
-    - name: Upload artifacts
+        if [ -d "/tmp/flutter_backup/lib" ]; then
+          echo "استعادة مجلد lib"
+          rm -rf lib
+          cp -r /tmp/flutter_backup/lib .
+        fi
+        
+        echo "✅ تم إنشاء المشروع بنجاح"
+    
+    # 5. طريقة بديلة: إنشاء android/ يدوياً إذا فشل flutter create
+    - name: Create Android manually (fallback)
+      if: false
+      run: |
+        echo "🔨 إنشاء هيكل Android يدوياً..."
+        mkdir -p android/app/src/main/res/values
+        mkdir -p android/app/src/main/kotlin
+        
+        # إنشاء ملف build.gradle بسيط
+        cat > android/app/build.gradle << 'EOF'
+apply plugin: 'com.android.application'
+apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
+
+android {
+    compileSdkVersion 34
+    
+    defaultConfig {
+        applicationId "com.example.lovespace"
+        minSdkVersion 21
+        targetSdkVersion 34
+        versionCode 1
+        versionName "1.0.0"
+        multiDexEnabled true
+    }
+    
+    buildTypes {
+        release {
+            signingConfig signingConfigs.debug
+        }
+    }
+}
+
+flutter {
+    source '../..'
+}
+
+dependencies {
+    implementation 'androidx.multidex:multidex:2.0.1'
+}
+EOF
+        
+        cat > android/build.gradle << 'EOF'
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.1.0'
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+EOF
+        
+        echo "android/" > android/.gitignore
+        echo "✅ تم الإنشاء يدوياً"
+    
+    # 6. تثبيت dependencies
+    - name: Install dependencies
+      run: |
+        echo "📦 تثبيت dependencies..."
+        flutter clean
+        flutter pub get
+    
+    # 7. التحقق من وجود android/ بعد كل الخطوات
+    - name: Verify Android structure
+      run: |
+        echo "🔍 التحقق من هيكل Android النهائي..."
+        if [ -d "android" ]; then
+          echo "✅ مجلد android موجود الآن"
+          echo "محتوى android/:"
+          find android -name "*.gradle" -o -name "AndroidManifest.xml" | sort
+          echo ""
+          echo "محتويات android/app/build.gradle:"
+          head -50 android/app/build.gradle 2>/dev/null || echo "الملف غير موجود"
+        else
+          echo "❌ مجلد android لا يزال غير موجود!"
+          echo "جاري إنشاؤه الآن..."
+          mkdir -p android
+          echo "تم إنشاء مجلد android فارغ"
+        fi
+    
+    # 8. تمكين MultiDex
+    - name: Enable MultiDex
+      run: |
+        echo "⚙️ تمكين MultiDex..."
+        
+        if [ -f "android/app/build.gradle" ]; then
+          # تعديل الملف الموجود
+          if ! grep -q "multiDexEnabled true" "android/app/build.gradle"; then
+            if grep -q "defaultConfig" "android/app/build.gradle"; then
+              sed -i '/defaultConfig {/a\        multiDexEnabled true' "android/app/build.gradle"
+            else
+              # إضافة defaultConfig كاملاً
+              sed -i '/android {/a\    defaultConfig {\n        multiDexEnabled true\n    }' "android/app/build.gradle"
+            fi
+          fi
+          
+          if ! grep -q "androidx.multidex:multidex" "android/app/build.gradle"; then
+            sed -i "/dependencies {/a\    implementation 'androidx.multidex:multidex:2.0.1'" "android/app/build.gradle"
+          fi
+          
+          echo "✅ تم تعديل build.gradle"
+        else
+          # إنشاء الملف إذا لم يكن موجوداً
+          echo "📄 إنشاء build.gradle جديد..."
+          mkdir -p android/app
+          cat > android/app/build.gradle << 'EOF'
+apply plugin: 'com.android.application'
+apply from: "../../packages/flutter_tools/gradle/flutter.gradle"
+
+android {
+    compileSdkVersion 34
+    
+    defaultConfig {
+        applicationId "com.example.lovespace"
+        minSdkVersion 21
+        targetSdkVersion 34
+        versionCode 1
+        versionName "1.0.0"
+        multiDexEnabled true
+    }
+    
+    buildTypes {
+        release {
+            signingConfig signingConfigs.debug
+        }
+    }
+}
+
+flutter {
+    source '../..'
+}
+
+dependencies {
+    implementation 'androidx.multidex:multidex:2.0.1'
+}
+EOF
+          echo "✅ تم إنشاء build.gradle جديد"
+        fi
+    
+    # 9. بناء التطبيق
+    - name: Build APK
+      run: |
+        echo "🔨 بدء بناء APK..."
+        
+        # أولاً: التحقق من أن flutter يعمل
+        flutter --version
+        flutter doctor -v
+        
+        # ثانياً: محاولة البناء
+        echo "محاولة بناء debug APK..."
+        flutter build apk --debug || echo "البناء الأول فشل، جرب مرة أخرى..."
+        
+        # ثالثاً: بناء بسيط مباشر
+        echo "بناء بسيط..."
+        flutter build apk --debug --no-shrink
+        
+        # التحقق من النتيجة
+        if [ -f "build/app/outputs/flutter-apk/app-debug.apk" ]; then
+          echo "🎉 ✅ تم بناء APK بنجاح!"
+          echo "حجم APK:"
+          ls -lh "build/app/outputs/flutter-apk/app-debug.apk"
+        else
+          echo "❌ فشل بناء APK"
+          echo "الملفات في build/:"
+          find build -type f 2>/dev/null | head -20 || true
+          exit 1
+        fi
+    
+    # 10. رفع النتيجة
+    - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: built-apks
-        path: build/app/outputs/flutter-apk/
+        name: lovespace-debug-apk
+        path: build/app/outputs/flutter-apk/app-debug.apk
+        retention-days: 30
