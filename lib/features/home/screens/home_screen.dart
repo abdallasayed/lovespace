@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-// استدعاء الشاشات (تم التأكد من المسارات)
 import '../../chat/screens/chat_screen.dart';
 import '../../music/screens/music_screen.dart';
-import '../../memories/screens/memories_screen.dart'; 
+import '../../memories/screens/memories_screen.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -70,9 +69,12 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5), // لون خلفية هادئ
       body: Stack(
         children: [
           screens[_currentIndex],
+          
+          // الشريط السفلي
           Positioned(
             left: 0, right: 0, bottom: 0,
             child: Container(
@@ -128,49 +130,80 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildHomeTab() {
     final days = DateTime.now().difference(widget.linkedDate).inDays;
     return SingleChildScrollView(
+      // إضافة حشوة سفلية لكي لا يغطي الشريط المحتوى
+      padding: const EdgeInsets.only(bottom: 120),
       child: Column(
         children: [
+          // الهيدر الأحمر
           Container(
-            padding: const EdgeInsets.only(top: 60, left: 20, right: 20, bottom: 30),
+            width: double.infinity,
+            padding: const EdgeInsets.only(top: 80, left: 20, right: 20, bottom: 50),
             decoration: const BoxDecoration(
-              gradient: LinearGradient(colors: [Color(0xFFE11D48), Color(0xFFbe123c)]),
+              gradient: LinearGradient(
+                colors: [Color(0xFFE11D48), Color(0xFFbe123c)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: BorderRadius.vertical(bottom: Radius.circular(40)),
             ),
             child: Column(
               children: [
-                const Text("قصة حبنا ❤️", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(20)),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      Column(children: [Text("$days", style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)), const Text("يوماً معاً", style: TextStyle(color: Colors.white70))]),
-                      const Icon(Icons.favorite, color: Colors.white, size: 40),
-                      Column(children: [const Text("∞", style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)), const Text("إلى الأبد", style: TextStyle(color: Colors.white70))]),
-                    ],
-                  ),
+                const Text("قصة حبنا ❤️", style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 30),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _counterItem("$days", "يوماً معاً"),
+                    Container(height: 40, width: 1, color: Colors.white30),
+                    _counterItem("∞", "إلى الأبد"),
+                  ],
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 50),
-          GestureDetector(
-            onTap: () {
-               FirebaseFirestore.instance.collection('couples').doc(widget.coupleId).collection('notifications').add({
-                 'text': "أنا مشتاق لك! 😍", 'senderId': FirebaseAuth.instance.currentUser!.uid, 'timestamp': FieldValue.serverTimestamp()
-               });
-               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم إرسال شوقك!")));
-            },
-            child: Container(
-              width: 150, height: 150,
-              decoration: BoxDecoration(color: Colors.pink[50], shape: BoxShape.circle),
-              child: const Icon(Icons.touch_app_rounded, size: 60, color: Colors.pink),
+          
+          // زر النكز (يظهر الآن بوضوح لأنه خارج الهيدر)
+          Transform.translate(
+            offset: const Offset(0, -30), // رفعه قليلاً ليتداخل مع الهيدر بشكل جميل
+            child: GestureDetector(
+              onTap: () {
+                 FirebaseFirestore.instance.collection('couples').doc(widget.coupleId).collection('notifications').add({
+                   'text': "أنا مشتاق لك! 😍", 'senderId': FirebaseAuth.instance.currentUser!.uid, 'timestamp': FieldValue.serverTimestamp()
+                 });
+                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم إرسال شوقك!")));
+              },
+              child: Container(
+                width: 140, height: 140,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 15, offset: const Offset(0, 5))],
+                ),
+                child: const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.touch_app_rounded, size: 50, color: Color(0xFFE11D48)),
+                    SizedBox(height: 5),
+                    Text("اشتقت لك", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
             ),
           ),
+          
+          const SizedBox(height: 20),
+          const Text("اضغط الزر لإرسال إشعار لحبيبك", style: TextStyle(color: Colors.grey)),
         ],
       ),
+    );
+  }
+  
+  Widget _counterItem(String value, String label) {
+    return Column(
+      children: [
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+      ],
     );
   }
 }

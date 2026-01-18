@@ -1,10 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:uuid/uuid.dart';
+import 'package:uploadcare_flutter/uploadcare_flutter.dart'; // استدعاء المكتبة
 
 class MemoriesScreen extends StatefulWidget {
   final String coupleId;
@@ -15,20 +14,30 @@ class MemoriesScreen extends StatefulWidget {
 }
 
 class _MemoriesScreenState extends State<MemoriesScreen> {
+  // إعداد العميل باستخدام مفتاحك
+  final _uploadcareClient = UploadcareClient(
+    options: UploadcareOptions(
+      publicKey: '8e2cb6a00c4b7dd45f95', // مفتاحك
+      useInAppBrowser: true,
+    ),
+  );
+
   Future<void> _uploadImage() async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
     if (image != null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("جاري رفع الصورة...")));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("جاري الرفع على Uploadcare...")));
+      
       try {
-        File file = File(image.path);
-        String fileName = "${const Uuid().v4()}.jpg";
-        final ref = FirebaseStorage.instance.ref().child('couples/${widget.coupleId}/images/$fileName');
+        // 1. الرفع إلى Uploadcare
+        final file = SharedFile(File(image.path));
+        final result = await _uploadcareClient.upload.auto(file);
         
-        await ref.putFile(file);
-        String url = await ref.getDownloadURL();
+        // 2. الحصول على الرابط
+        final String url = "https://ucarecdn.com/${result.uuid}/";
 
+        // 3. حفظ الرابط في فايربيز
         await FirebaseFirestore.instance
             .collection('couples')
             .doc(widget.coupleId)
@@ -50,7 +59,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
         });
 
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("فشل: $e")));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("فشل الرفع: $e")));
       }
     }
   }
@@ -75,7 +84,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
           if (docs.isEmpty) return const Center(child: Text("أضف أول صورة لذكراكم!"));
 
           return GridView.builder(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.only(left: 10, right: 10, top: 10, bottom: 100),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               crossAxisSpacing: 10,

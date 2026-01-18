@@ -1,11 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:uuid/uuid.dart';
+import 'package:uploadcare_flutter/uploadcare_flutter.dart';
 
 class MusicScreen extends StatefulWidget {
   final String coupleId;
@@ -17,20 +16,26 @@ class MusicScreen extends StatefulWidget {
 
 class _MusicScreenState extends State<MusicScreen> {
   final AudioPlayer _player = AudioPlayer();
+  // إعداد العميل
+  final _uploadcareClient = UploadcareClient(
+    options: UploadcareOptions(
+      publicKey: '8e2cb6a00c4b7dd45f95',
+      useInAppBrowser: true,
+    ),
+  );
+  
   String? _playingUrl;
   bool _isPlaying = false;
 
   Future<void> _uploadMusic() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.audio);
     if (result != null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("جاري الرفع...")));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("جاري الرفع على Uploadcare...")));
+      
       try {
-        File file = File(result.files.single.path!);
-        String fileName = "${const Uuid().v4()}.mp3";
-        final ref = FirebaseStorage.instance.ref().child('couples/${widget.coupleId}/music/$fileName');
-        
-        await ref.putFile(file);
-        String url = await ref.getDownloadURL();
+        final file = SharedFile(File(result.files.single.path!));
+        final uploadResult = await _uploadcareClient.upload.auto(file);
+        final String url = "https://ucarecdn.com/${uploadResult.uuid}/";
 
         await FirebaseFirestore.instance
             .collection('couples')
@@ -71,8 +76,10 @@ class _MusicScreenState extends State<MusicScreen> {
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           final docs = snapshot.data!.docs;
-          
+          if (docs.isEmpty) return const Center(child: Text("أضف مقطعاً موسيقياً!"));
+
           return ListView.builder(
+            padding: const EdgeInsets.only(bottom: 100),
             itemCount: docs.length,
             itemBuilder: (context, index) {
               final data = docs[index].data() as Map<String, dynamic>;
