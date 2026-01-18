@@ -54,7 +54,7 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.debug
-            // هام جداً: إلغاء التصغير لتجنب المشاكل حالياً
+            // إيقاف التصغير هام جداً الآن
             minifyEnabled false
             shrinkResources false
         }
@@ -66,7 +66,7 @@ flutter {
 }
 
 dependencies {
-    // يجب أن يتطابق هذا الرقم مع الرقم في الملف السابق (1.9.10)
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.9.10'
+    // التوافق مع Kotlin 1.9.0
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:1.9.0"
 }
 
