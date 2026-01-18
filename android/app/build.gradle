@@ -54,7 +54,7 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.debug
-            // إلغاء التصغير هو المفتاح لتجاوز أخطاء R8 حالياً
+            // هام جداً: إلغاء التصغير لتجنب المشاكل حالياً
             minifyEnabled false
             shrinkResources false
         }
@@ -66,6 +66,7 @@ flutter {
 }
 
 dependencies {
-    // رقم صريح لإصدار كوتلين
+    // يجب أن يتطابق هذا الرقم مع الرقم في الملف السابق (1.9.10)
     implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.9.10'
 }
+

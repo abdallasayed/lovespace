@@ -4,8 +4,9 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        // استخدام أرقام صريحة لإلغاء أي لبس
+        // تحديث أدوات أندرويد
         classpath 'com.android.tools.build:gradle:7.4.2'
+        // هذا هو السطر الحاسم: تحديد إصدار المترجم 1.9.10 يدوياً
         classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.10'
     }
 }
@@ -28,3 +29,4 @@ subprojects {
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
+
