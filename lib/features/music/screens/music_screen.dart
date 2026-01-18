@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:uploadcare_flutter/uploadcare_flutter.dart';
+import 'package:uploadcare_client/uploadcare_client.dart'; // إضافة هامة
 
 class MusicScreen extends StatefulWidget {
   final String coupleId;
@@ -17,9 +18,12 @@ class MusicScreen extends StatefulWidget {
 class _MusicScreenState extends State<MusicScreen> {
   final AudioPlayer _player = AudioPlayer();
   
-  // تصحيح تعريف العميل
+  // التصحيح: وضع المفتاح داخل UploadcareOptions
   final _uploadcareClient = UploadcareClient(
-    publicKey: '8e2cb6a00c4b7dd45f95',
+    options: UploadcareOptions(
+      publicKey: '8e2cb6a00c4b7dd45f95',
+      useInAppBrowser: true,
+    ),
   );
   
   String? _playingUrl;
@@ -29,10 +33,10 @@ class _MusicScreenState extends State<MusicScreen> {
     FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.audio);
     if (result != null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("جاري الرفع...")));
-      
       try {
-        // تصحيح عملية الرفع
         final file = File(result.files.single.path!);
+        
+        // الرفع المباشر
         final String fileId = await _uploadcareClient.upload.auto(file);
         final String url = "https://ucarecdn.com/$fileId/";
 

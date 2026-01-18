@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uploadcare_flutter/uploadcare_flutter.dart';
+import 'package:uploadcare_client/uploadcare_client.dart'; // إضافة هامة
 
 class MemoriesScreen extends StatefulWidget {
   final String coupleId;
@@ -14,9 +15,12 @@ class MemoriesScreen extends StatefulWidget {
 }
 
 class _MemoriesScreenState extends State<MemoriesScreen> {
-  // التعديل الأول: تعريف العميل مباشرة بدون UploadcareOptions
+  // التصحيح: وضع المفتاح داخل UploadcareOptions
   final _uploadcareClient = UploadcareClient(
-    publicKey: '8e2cb6a00c4b7dd45f95',
+    options: UploadcareOptions(
+      publicKey: '8e2cb6a00c4b7dd45f95',
+      useInAppBrowser: true,
+    ),
   );
 
   Future<void> _uploadImage() async {
@@ -25,14 +29,11 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
 
     if (image != null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("جاري الرفع...")));
-      
       try {
         final file = File(image.path);
         
-        // التعديل الثاني: الرفع المباشر واستقبال المعرف كنص (String)
+        // الرفع المباشر
         final String fileId = await _uploadcareClient.upload.auto(file);
-        
-        // التعديل الثالث: استخدام المعرف مباشرة
         final String url = "https://ucarecdn.com/$fileId/";
 
         await FirebaseFirestore.instance
