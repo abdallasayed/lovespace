@@ -22,9 +22,9 @@ dependencies:
   cloud_firestore: ^4.14.0
   firebase_storage: ^11.6.0
   
-  # مكتبات الرفع (التعديل هنا)
+  # مكتبات الرفع (تم تخفيض الإصدار هنا لحل المشكلة)
   uploadcare_flutter: ^5.0.0
-  uploadcare_client: ^7.1.0
+  uploadcare_client: ^7.0.0
   
   # الوسائط والأدوات
   image_picker: ^1.0.7
