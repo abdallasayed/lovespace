@@ -6,7 +6,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:permission_handler/permission_handler.dart'; // مكتبة الصلاحيات
+import 'package:permission_handler/permission_handler.dart';
+import 'package:dio/dio.dart';
+import 'package:gal/gal.dart';
 
 class MemoriesScreen extends StatefulWidget {
   final String coupleId;
@@ -19,6 +21,7 @@ class MemoriesScreen extends StatefulWidget {
 class _MemoriesScreenState extends State<MemoriesScreen> {
   bool _isUploading = false;
 
+  // دالة الرفع (Uploadcare)
   Future<String?> _uploadToUploadcare(File file) async {
     try {
       var request = http.MultipartRequest('POST', Uri.parse('https://upload.uploadcare.com/base/'));
@@ -32,43 +35,53 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
         var json = jsonDecode(responseData);
         return json['file'];
       }
-    } catch (e) {
-      debugPrint("Error: $e");
-    }
+    } catch (e) { debugPrint("Error: $e"); }
     return null;
   }
 
   Future<void> _uploadImage() async {
-    // 1. طلب الصلاحية أولاً (حل مشكلة التعليق)
-    Map<Permission, PermissionStatus> statuses = await [
-      Permission.storage, 
-      Permission.photos,
-    ].request();
-
-    // 2. اختيار الصورة
+    await [Permission.photos, Permission.storage].request();
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
     if (image != null) {
-      setState(() => _isUploading = true); // إظهار التحميل
-      
+      setState(() => _isUploading = true);
       try {
         final String? fileId = await _uploadToUploadcare(File(image.path));
-
         if (fileId != null) {
-          final String url = "https://ucarecdn.com/$fileId/";
+          // رابط مباشر للصورة
+          final String url = "https://ucarecdn.com/$fileId/"; 
           await FirebaseFirestore.instance.collection('couples').doc(widget.coupleId).collection('images').add({
             'url': url,
+            'fileId': fileId,
             'senderId': FirebaseAuth.instance.currentUser!.uid,
             'createdAt': FieldValue.serverTimestamp(),
           });
         }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("فشل: $e")));
+        if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("فشل: $e")));
       } finally {
-        setState(() => _isUploading = false); // إخفاء التحميل
+        if(mounted) setState(() => _isUploading = false);
       }
     }
+  }
+
+  // دالة حفظ الصورة
+  Future<void> _saveImage(String url) async {
+    try {
+      if (!await Gal.hasAccess()) await Gal.requestAccess();
+      final path = '${Directory.systemTemp.path}/temp_image.jpg';
+      await Dio().download(url, path);
+      await Gal.putImage(path);
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("تم الحفظ في المعرض ✅")));
+    } catch (e) {
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("فشل الحفظ: $e")));
+    }
+  }
+
+  // دالة الحذف
+  Future<void> _deleteImage(String docId) async {
+    await FirebaseFirestore.instance.collection('couples').doc(widget.coupleId).collection('images').doc(docId).delete();
   }
 
   @override
@@ -87,7 +100,7 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
         icon: _isUploading 
             ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) 
             : const Icon(Icons.add_a_photo, color: Colors.white),
-        label: Text(_isUploading ? "جارِ الرفع..." : "إضافة ذكرى"),
+        label: Text(_isUploading ? "جارِ الرفع..." : "إضافة صورة"),
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
@@ -105,23 +118,59 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
               crossAxisCount: 2,
               crossAxisSpacing: 15,
               mainAxisSpacing: 15,
-              childAspectRatio: 0.8, // صور طولية (بورتيريه)
+              childAspectRatio: 0.75,
             ),
             itemCount: snapshot.data!.docs.length,
             itemBuilder: (context, index) {
-              final url = (snapshot.data!.docs[index].data() as Map<String, dynamic>)['url'];
-              return Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: CachedNetworkImage(
-                    imageUrl: url,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(color: Colors.grey[200]),
-                    errorWidget: (context, url, error) => const Icon(Icons.error),
+              final doc = snapshot.data!.docs[index];
+              final data = doc.data() as Map<String, dynamic>;
+              final url = data['url'];
+
+              return GestureDetector(
+                onLongPress: () {
+                  // قائمة خيارات عند الضغط المطول
+                  showModalBottomSheet(context: context, builder: (ctx) => Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.save_alt, color: Colors.blue),
+                        title: const Text("حفظ الصورة"),
+                        onTap: () { Navigator.pop(ctx); _saveImage(url); },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.delete, color: Colors.red),
+                        title: const Text("حذف الصورة"),
+                        onTap: () { Navigator.pop(ctx); _deleteImage(doc.id); },
+                      ),
+                    ],
+                  ));
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10)],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        CachedNetworkImage(
+                          imageUrl: url,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(color: Colors.grey[200]),
+                          errorWidget: (context, url, error) => const Icon(Icons.error),
+                        ),
+                        // تدرج لوني خفيف في الأسفل
+                        Positioned(
+                          bottom: 0, left: 0, right: 0,
+                          child: Container(
+                            height: 40,
+                            decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.bottomCenter, end: Alignment.topCenter, colors: [Colors.black54, Colors.transparent])),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );

@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_slidable/flutter_slidable.dart'; // للحذف بالسحب
 
 class MusicScreen extends StatefulWidget {
   final String coupleId;
@@ -18,7 +19,7 @@ class MusicScreen extends StatefulWidget {
 
 class _MusicScreenState extends State<MusicScreen> {
   final AudioPlayer _player = AudioPlayer();
-  String? _playingUrl;
+  String? _playingId; // لتتبع أي ملف يعمل
   bool _isPlaying = false;
   bool _isUploading = false;
 
@@ -38,10 +39,9 @@ class _MusicScreenState extends State<MusicScreen> {
   }
 
   Future<void> _uploadMusic() async {
-    // 1. طلب الصلاحيات
     await [Permission.storage, Permission.audio].request();
-
     FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.audio);
+    
     if (result != null) {
       setState(() => _isUploading = true);
       try {
@@ -56,11 +56,37 @@ class _MusicScreenState extends State<MusicScreen> {
           });
         }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("فشل: $e")));
+        if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("فشل: $e")));
       } finally {
-        setState(() => _isUploading = false);
+        if(mounted) setState(() => _isUploading = false);
       }
     }
+  }
+
+  Future<void> _playMusic(String url, String id) async {
+    if (_playingId == id && _isPlaying) {
+      await _player.pause();
+      setState(() => _isPlaying = false);
+    } else {
+      await _player.stop();
+      // تشغيل من الرابط مباشرة
+      await _player.play(UrlSource(url));
+      setState(() {
+        _playingId = id;
+        _isPlaying = true;
+      });
+    }
+  }
+  
+  // دالة الحذف
+  Future<void> _deleteMusic(String docId) async {
+     await FirebaseFirestore.instance.collection('couples').doc(widget.coupleId).collection('music').doc(docId).delete();
+  }
+
+  @override
+  void dispose() {
+    _player.dispose();
+    super.dispose();
   }
 
   @override
@@ -87,36 +113,52 @@ class _MusicScreenState extends State<MusicScreen> {
             padding: const EdgeInsets.all(15),
             itemCount: snapshot.data!.docs.length,
             itemBuilder: (context, index) {
-              final data = snapshot.data!.docs[index].data() as Map<String, dynamic>;
-              final isPlayingThis = _playingUrl == data['url'] && _isPlaying;
-
-              return Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
-                ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  leading: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: isPlayingThis ? const Color(0xFFE11D48) : Colors.pink[50],
-                      shape: BoxShape.circle,
+              final doc = snapshot.data!.docs[index];
+              final data = doc.data() as Map<String, dynamic>;
+              final isCurrent = _playingId == doc.id;
+              
+              return Slidable(
+                key: ValueKey(doc.id),
+                endActionPane: ActionPane(
+                  motion: const ScrollMotion(),
+                  children: [
+                    SlidableAction(
+                      onPressed: (context) => _deleteMusic(doc.id),
+                      backgroundColor: const Color(0xFFFE4A49),
+                      foregroundColor: Colors.white,
+                      icon: Icons.delete,
+                      label: 'حذف',
+                      borderRadius: BorderRadius.circular(15),
                     ),
-                    child: Icon(isPlayingThis ? Icons.pause : Icons.play_arrow, color: isPlayingThis ? Colors.white : const Color(0xFFE11D48)),
+                  ],
+                ),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(15),
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
                   ),
-                  title: Text(data['name'] ?? "مقطع صوتي", style: const TextStyle(fontWeight: FontWeight.bold)),
-                  onTap: () async {
-                    if (isPlayingThis) {
-                      await _player.pause();
-                      setState(() => _isPlaying = false);
-                    } else {
-                      await _player.play(UrlSource(data['url']));
-                      setState(() { _playingUrl = data['url']; _isPlaying = true; });
-                    }
-                  },
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    leading: GestureDetector(
+                      onTap: () => _playMusic(data['url'], doc.id),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: isCurrent && _isPlaying ? const Color(0xFFE11D48) : Colors.pink[50],
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          isCurrent && _isPlaying ? Icons.pause : Icons.play_arrow_rounded,
+                          color: isCurrent && _isPlaying ? Colors.white : const Color(0xFFE11D48),
+                          size: 30,
+                        ),
+                      ),
+                    ),
+                    title: Text(data['name'] ?? "مقطع صوتي", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    subtitle: isCurrent ? const Text("جارِ التشغيل...", style: TextStyle(color: Color(0xFFE11D48), fontSize: 12)) : null,
+                  ),
                 ),
               );
             },
