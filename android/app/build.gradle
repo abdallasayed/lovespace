@@ -54,10 +54,9 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.debug
-            // --- التعديل الحاسم هنا ---
-            minifyEnabled false    // إلغاء التصغير لتجاوز خطأ R8
-            shrinkResources false  // إلغاء تقليص الموارد
-            // -------------------------
+            // هام جداً: إلغاء التصغير لتجنب أخطاء R8 مع المكتبات الحديثة
+            minifyEnabled false
+            shrinkResources false
         }
     }
 }
@@ -67,5 +66,6 @@ flutter {
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.0"
+    // تثبيت المكتبة على 1.9.0 لتتوافق مع المترجم
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:1.9.0"
 }
