@@ -10,13 +10,13 @@ dependencies:
   flutter:
     sdk: flutter
   
-  # الأساسيات
+  # التصميم والخطوط
   google_fonts: ^6.1.0
   cupertino_icons: ^1.0.2
   intl: ^0.19.0
   timeago: ^3.6.1
   
-  # فايربيز
+  # خدمات فايربيز
   firebase_core: ^2.24.2
   firebase_auth: ^4.16.0
   cloud_firestore: ^4.14.0
@@ -26,15 +26,21 @@ dependencies:
   image_picker: ^1.0.7
   file_picker: ^6.1.1
   audioplayers: ^5.2.1
-  record: ^5.1.0  # مكتبة التسجيل الجديدة
   uuid: ^4.3.3
   http: ^1.1.0
   cached_network_image: ^3.3.1
   
-  # الصلاحيات
+  # مكتبة التسجيل (للشات)
+  record: ^5.1.0
+  
+  # الصلاحيات والتحميل
   permission_handler: ^11.3.0
   dio: ^5.4.0
   path_provider: ^2.1.2
+  
+  # المكتبات التي اختفت (تمت إعادتها الآن)
+  image_gallery_saver: ^2.0.3
+  flutter_slidable: ^3.0.1
 
 dev_dependencies:
   flutter_test:
