@@ -30,10 +30,13 @@ dependencies:
   http: ^1.1.0
   cached_network_image: ^3.3.1
   
-  # المكتبات المستقرة (السر هنا)
-  # استخدمنا إصدار قديم ومستقر جداً لا يطلب كوتلين الحديث
+  # المكتبات المستقرة
   record: ^4.4.4 
   permission_handler: ^11.0.0
+  
+  # تمت إعادة dio هنا للإصلاح
+  dio: ^5.4.0
+  
   path_provider: ^2.0.15
   image_gallery_saver: ^2.0.3
   flutter_slidable: ^3.0.1
