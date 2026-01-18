@@ -10,13 +10,13 @@ dependencies:
   flutter:
     sdk: flutter
   
-  # التصميم والخطوط
+  # الأساسيات
   google_fonts: ^6.1.0
   cupertino_icons: ^1.0.2
   intl: ^0.19.0
   timeago: ^3.6.1
   
-  # خدمات فايربيز
+  # فايربيز
   firebase_core: ^2.24.2
   firebase_auth: ^4.16.0
   cloud_firestore: ^4.14.0
@@ -30,15 +30,11 @@ dependencies:
   http: ^1.1.0
   cached_network_image: ^3.3.1
   
-  # مكتبة التسجيل (للشات)
-  record: ^5.1.0
-  
-  # الصلاحيات والتحميل
-  permission_handler: ^11.3.0
-  dio: ^5.4.0
-  path_provider: ^2.1.2
-  
-  # المكتبات التي اختفت (تمت إعادتها الآن)
+  # المكتبات المستقرة (السر هنا)
+  # استخدمنا إصدار قديم ومستقر جداً لا يطلب كوتلين الحديث
+  record: ^4.4.4 
+  permission_handler: ^11.0.0
+  path_provider: ^2.0.15
   image_gallery_saver: ^2.0.3
   flutter_slidable: ^3.0.1
 
@@ -49,4 +45,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-

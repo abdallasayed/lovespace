@@ -7,7 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:record/record.dart';
+import 'package:record/record.dart'; // المكتبة المستقرة
 import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart' as intl;
@@ -22,12 +22,12 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _textController = TextEditingController();
-  final AudioRecorder _audioRecorder = AudioRecorder();
+  // التغيير هنا: استخدام Record بدلاً من AudioRecorder
+  final Record _audioRecorder = Record();
   final ScrollController _scrollController = ScrollController();
   bool _isRecording = false;
   bool _isUploading = false;
 
-  // --- دوال الرفع (مضمونة) ---
   Future<String?> _uploadToUploadcare(File file) async {
     try {
       var request = http.MultipartRequest('POST', Uri.parse('https://upload.uploadcare.com/base/'));
@@ -43,7 +43,6 @@ class _ChatScreenState extends State<ChatScreen> {
     return null;
   }
 
-  // --- إرسال نص ---
   void _sendText() async {
     if (_textController.text.trim().isEmpty) return;
     String text = _textController.text.trim();
@@ -51,7 +50,6 @@ class _ChatScreenState extends State<ChatScreen> {
     await _sendMessage(type: 'text', content: text);
   }
 
-  // --- إرسال صورة ---
   void _sendImage() async {
     await [Permission.photos, Permission.storage].request();
     final ImagePicker picker = ImagePicker();
@@ -64,17 +62,18 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  // --- تسجيل وإرسال صوت ---
   void _startRecording() async {
     if (await _audioRecorder.hasPermission()) {
       final Directory appDir = await getApplicationDocumentsDirectory();
       final String filePath = '${appDir.path}/recording_${DateTime.now().millisecondsSinceEpoch}.m4a';
-      await _audioRecorder.start(const RecordConfig(), path: filePath);
+      // كود المكتبة القديمة المستقرة
+      await _audioRecorder.start(path: filePath);
       setState(() => _isRecording = true);
     }
   }
 
   void _stopRecording() async {
+    // كود المكتبة القديمة المستقرة
     final String? path = await _audioRecorder.stop();
     setState(() => _isRecording = false);
     if (path != null) {
@@ -85,28 +84,20 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  // --- الدالة العامة للإرسال ---
   Future<void> _sendMessage({required String type, required String content}) async {
     final userId = FirebaseAuth.instance.currentUser!.uid;
     await FirebaseFirestore.instance.collection('couples').doc(widget.coupleId).collection('messages').add({
-      'type': type, // text, image, audio
+      'type': type,
       'content': content,
       'senderId': userId,
       'createdAt': FieldValue.serverTimestamp(),
-    });
-    
-    // إشعار بسيط
-    FirebaseFirestore.instance.collection('couples').doc(widget.coupleId).collection('notifications').add({
-      'text': type == 'text' ? content : (type == 'image' ? 'أرسل صورة 📷' : 'أرسل مقطع صوتي 🎙️'),
-      'senderId': userId,
-      'timestamp': FieldValue.serverTimestamp(),
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE5E5E5), // لون خلفية واتساب الهادئ
+      backgroundColor: const Color(0xFFE5E5E5),
       appBar: AppBar(
         title: const Text("محادثتنا ❤️", style: TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
@@ -155,10 +146,7 @@ class _ChatScreenState extends State<ChatScreen> {
       color: Colors.white,
       child: Row(
         children: [
-          // زر الصور
           IconButton(icon: const Icon(Icons.image, color: Colors.grey), onPressed: _sendImage),
-          
-          // حقل النص
           Expanded(
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -170,8 +158,6 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
           const SizedBox(width: 5),
-          
-          // زر الإرسال أو التسجيل
           GestureDetector(
             onLongPress: _startRecording,
             onLongPressUp: _stopRecording,
@@ -191,7 +177,6 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 }
 
-// --- ويدجت الفقاعة (Bubble) ---
 class MessageBubble extends StatefulWidget {
   final String type;
   final String content;
@@ -232,7 +217,7 @@ class _MessageBubbleState extends State<MessageBubble> {
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(4), // Padding صغير للحاوية العامة
+          padding: const EdgeInsets.all(4),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -288,7 +273,7 @@ class _MessageBubbleState extends State<MessageBubble> {
             ],
           ),
         );
-      default: // text
+      default:
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: Text(
@@ -299,4 +284,3 @@ class _MessageBubbleState extends State<MessageBubble> {
     }
   }
 }
-

@@ -1,14 +1,12 @@
 buildscript {
-    // تعريف المتغير هنا هو الحل السحري
-    ext.kotlin_version = '1.9.0'
+    // العودة للإصدار الآمن والمتوافق مع الجميع
+    ext.kotlin_version = '1.7.10'
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
-        // تحديث أدوات أندرويد لتتوافق مع Gradle 7.6.3
-        classpath 'com.android.tools.build:gradle:7.4.2'
-        // استخدام إصدار كوتلين المعرف بالأعلى
+        classpath 'com.android.tools.build:gradle:7.3.0'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
@@ -31,4 +29,3 @@ subprojects {
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
-

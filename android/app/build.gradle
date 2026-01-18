@@ -27,7 +27,7 @@ apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
     namespace "com.example.lovespace"
-    compileSdkVersion 34
+    compileSdkVersion 33
     ndkVersion flutter.ndkVersion
 
     compileOptions {
@@ -45,8 +45,9 @@ android {
 
     defaultConfig {
         applicationId "com.example.lovespace"
-        minSdkVersion 23
-        targetSdkVersion 34
+        // مكتبة التسجيل القديمة تعمل مع 21 عادي جداً
+        minSdkVersion 21
+        targetSdkVersion 33
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
     }
@@ -54,9 +55,6 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.debug
-            // إيقاف التصغير لتفادي مشاكل R8
-            minifyEnabled false
-            shrinkResources false
         }
     }
 }
@@ -66,7 +64,5 @@ flutter {
 }
 
 dependencies {
-    // توحيد المكتبة مع المترجم (1.9.0)
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:1.9.0"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
 }
-
